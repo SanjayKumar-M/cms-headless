@@ -3,7 +3,7 @@ import './App.css';
 function App() {
   return (
     <div>
-        Headless <h1> CMS </h1>
+        Admin Dashboard
     </div>
   );
 }
