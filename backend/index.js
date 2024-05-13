@@ -1,24 +1,20 @@
 import express from 'express';
-import mongoose from 'mongoose';
-import routes from './routes/entityroute.js';
+import entityRoutes from './routes/entityroute.js';
+import sequelize from './model/schema.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB
-mongoose.connect('mongodb://localhost/headless-cms', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log('MongoDB Connected'))
-  .catch(err => console.log(err));
-
-// Middleware
 app.use(express.json());
 
-// Routes
-app.use('/api', routes);
+app.use('/api/entities', entityRoutes);
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
+  try {
+    await sequelize.authenticate();
+    console.log('Database connection has been established successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
 });

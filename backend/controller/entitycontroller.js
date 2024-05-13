@@ -1,85 +1,99 @@
-import EntitySchema from '../model/schema.js';
-import mongoose from 'mongoose';
+import sequelize from '../model/schema.js';
 
-// Create a new entity
+// Create a new entity with its attributes
 export const createEntity = async (req, res) => {
+  const { entityName, attributes } = req.body;
+
   try {
-    const { entityName, attributes } = req.body;
-    const entitySchema = new EntitySchema({ name: entityName, attributes });
-    await entitySchema.save();
-    res.status(201).json({ message: 'Entity created successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const entity = await sequelize.define(entityName, attributes, {
+      freezeTableName: true,
+    });
+    await entity.sync();
+    res.status(201).json({ message: `Entity ${entityName} created successfully` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error creating entity' });
   }
 };
 
-// Get data for an entity
-export const getEntityData = async (req, res) => {
+// Create a new entry for an existing entity
+export const createEntry = async (req, res) => {
+  const { entityName, entry } = req.body;
+
   try {
-    const { entityName } = req.params;
-    const entitySchema = await EntitySchema.findOne({ name: entityName });
-    if (!entitySchema) {
-      return res.status(404).json({ error: 'Entity not found' });
+    const entity = sequelize.models[entityName];
+    if (!entity) {
+      return res.status(404).json({ message: `Entity ${entityName} not found` });
     }
-    const entityModel = mongoose.model(entityName, entitySchema.schema);
-    const data = await entityModel.find();
-    res.status(200).json(data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const newEntry = await entity.create(entry);
+    res.status(201).json(newEntry);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error creating entry' });
   }
 };
 
-// Create data for an entity
-export const createData = async (req, res) => {
+// Read all entries for an existing entity
+export const readEntries = async (req, res) => {
+  const { entityName } = req.params;
+
   try {
-    const { entityName } = req.params;
-    const entitySchema = await EntitySchema.findOne({ name: entityName });
-    if (!entitySchema) {
-      return res.status(404).json({ error: 'Entity not found' });
+    const entity = sequelize.models[entityName];
+    if (!entity) {
+      return res.status(404).json({ message: `Entity ${entityName} not found` });
     }
-    const entityModel = mongoose.model(entityName, entitySchema.schema);
-    const newData = new entityModel(req.body);
-    await newData.save();
-    res.status(201).json({ message: 'Data created successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const entries = await entity.findAll();
+    res.status(200).json(entries);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error reading entries' });
   }
 };
 
-// Update data for an entity
-export const updateData = async (req, res) => {
+// Update an existing entry for an entity
+export const updateEntry = async (req, res) => {
+  const { entityName, entryId } = req.params;
+  const updatedEntry = req.body;
+
   try {
-    const { entityName, id } = req.params;
-    const entitySchema = await EntitySchema.findOne({ name: entityName });
-    if (!entitySchema) {
-      return res.status(404).json({ error: 'Entity not found' });
+    const entity = sequelize.models[entityName];
+    if (!entity) {
+      return res.status(404).json({ message: `Entity ${entityName} not found` });
     }
-    const entityModel = mongoose.model(entityName, entitySchema.schema);
-    const updatedData = await entityModel.findByIdAndUpdate(id, req.body, { new: true });
-    if (!updatedData) {
-      return res.status(404).json({ error: 'Data not found' });
+    const [updated] = await entity.update(updatedEntry, {
+      where: { id: entryId },
+    });
+    if (updated) {
+      const updatedEntryData = await entity.findByPk(entryId);
+      res.status(200).json(updatedEntryData);
+    } else {
+      res.status(404).json({ message: `Entry with id ${entryId} not found` });
     }
-    res.status(200).json(updatedData);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error updating entry' });
   }
 };
 
-// Delete data for an entity
-export const deleteData = async (req, res) => {
+// Delete an existing entry for an entity
+export const deleteEntry = async (req, res) => {
+  const { entityName, entryId } = req.params;
+
   try {
-    const { entityName, id } = req.params;
-    const entitySchema = await EntitySchema.findOne({ name: entityName });
-    if (!entitySchema) {
-      return res.status(404).json({ error: 'Entity not found' });
+    const entity = sequelize.models[entityName];
+    if (!entity) {
+      return res.status(404).json({ message: `Entity ${entityName} not found` });
     }
-    const entityModel = mongoose.model(entityName, entitySchema.schema);
-    const deletedData = await entityModel.findByIdAndDelete(id);
-    if (!deletedData) {
-      return res.status(404).json({ error: 'Data not found' });
+    const deleted = await entity.destroy({
+      where: { id: entryId },
+    });
+    if (deleted) {
+      res.status(200).json({ message: `Entry with id ${entryId} deleted successfully` });
+    } else {
+      res.status(404).json({ message: `Entry with id ${entryId} not found` });
     }
-    res.status(200).json({ message: 'Data deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error deleting entry' });
   }
 };
