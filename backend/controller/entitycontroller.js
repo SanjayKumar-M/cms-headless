@@ -1,11 +1,46 @@
+import { Sequelize, DataTypes } from 'sequelize';
 import sequelize from '../model/schema.js';
-
 // Create a new entity with its attributes
 export const createEntity = async (req, res) => {
   const { entityName, attributes } = req.body;
-
   try {
-    const entity = await sequelize.define(entityName, attributes, {
+    const updatedAttributes = {};
+
+    // Convert attribute types to PostgreSQL-compatible types
+    Object.entries(attributes).forEach(([key, value]) => {
+      const { type, allowNull } = value;
+      switch (type ? type.toUpperCase() : 'STRING') {
+        case 'STRING':
+          updatedAttributes[key] = {
+            type: DataTypes.TEXT, // Use DataTypes.TEXT
+            allowNull: !allowNull,
+          };
+          break;
+        case 'INTEGER':
+          updatedAttributes[key] = {
+            type: DataTypes.INTEGER, // Use DataTypes.INTEGER
+            allowNull: !allowNull,
+          };
+          break;
+        case 'FLOAT':
+          updatedAttributes[key] = {
+            type: DataTypes.FLOAT, // Use DataTypes.FLOAT
+            allowNull: !allowNull,
+          };
+          break;
+        case 'DATE':
+          updatedAttributes[key] = {
+            type: DataTypes.DATE, // Use DataTypes.DATE
+            allowNull: !allowNull,
+          };
+          break;
+        // Add more cases for other data types as needed
+        default:
+          break;
+      }
+    });
+
+    const entity = await sequelize.define(entityName, updatedAttributes, {
       freezeTableName: true,
     });
     await entity.sync();
@@ -16,6 +51,20 @@ export const createEntity = async (req, res) => {
   }
 };
 
+export const readEntities = async (req, res) => {
+  try {
+    // Get all model names from the sequelize object
+    const entityNames = Object.keys(sequelize.models);
+
+    // Send the list of entity names as response
+    res.status(200).json(entityNames);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error reading entities' });
+  }
+};
+
+// Rest of the code...
 // Create a new entry for an existing entity
 export const createEntry = async (req, res) => {
   const { entityName, entry } = req.body;
@@ -36,13 +85,16 @@ export const createEntry = async (req, res) => {
 // Read all entries for an existing entity
 export const readEntries = async (req, res) => {
   const { entityName } = req.params;
-
   try {
     const entity = sequelize.models[entityName];
     if (!entity) {
       return res.status(404).json({ message: `Entity ${entityName} not found` });
     }
-    const entries = await entity.findAll();
+
+    const entries = await entity.findAll({
+      attributes: Object.keys(entity.rawAttributes),
+    });
+
     res.status(200).json(entries);
   } catch (error) {
     console.error(error);

@@ -5,11 +5,13 @@ import {
   readEntries,
   updateEntry,
   deleteEntry,
+  readEntities
 } from '../controller/entitycontroller.js';
 
 const router = express.Router();
 
 router.post('/create', createEntity);
+router.get('/', readEntities);
 router.post('/entry', createEntry);
 router.get('/:entityName', readEntries);
 router.put('/:entityName/:entryId', updateEntry);

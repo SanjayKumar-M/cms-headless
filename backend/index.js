@@ -1,11 +1,12 @@
 import express from 'express';
 import entityRoutes from './routes/entityroute.js';
 import sequelize from './model/schema.js';
-
+import cors from 'cors'
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 8080;
 
 app.use(express.json());
+app.use(cors())
 
 app.use('/api/entities', entityRoutes);
 
